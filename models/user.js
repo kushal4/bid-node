@@ -8,8 +8,22 @@ const Model = Sequelize.Model;
 class User extends Model {
     generateToken() {
         let privateKEY = fs.readFileSync('./private.key', 'utf8');
+        console.log(privateKEY);
+        var i = 'Mysoft corp'; // Issuer 
+        var s = 'some@user.com'; // Subject 
+        var a = 'http://mysoftcorp.in'; // Audience
+        // SIGNING OPTIONS
+        let signOptions = {
+            issuer: i,
+            subject: s,
+            audience: a,
+            expiresIn: "12h",
+            algorithm: "RS256"
+        };
 
-        let token = jwt.sign({ role: this.role, user_id: this.id, username: this.username }, privateKEY);
+        let payload = { role: this.role, user_id: this.id, username: this.username }
+
+        let token = jwt.sign(payload, privateKEY, signOptions);
         return token;
     }
 }
