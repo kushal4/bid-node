@@ -1,11 +1,15 @@
 //const Product = require("../models/product");
 const Bid = require("../models/Bid");
+const BidRepository = require("../repositories/BidRepository");
 const _ = require("lodash");
 const { Op } = require("sequelize");
 const { BidValidation } = require("../utils/bid_validation");
 
 class BidController {
 
+    constructor() {
+        this.bidRepo = new BidRepository();
+    }
     async save(req, res, next) {
         const bid_obj = _.pick(req.body, ["user_id", "product_id", "price"]);
         //console.log(bid_obj);
@@ -24,7 +28,7 @@ class BidController {
                 ...bid_obj
             };
             //console.log(create_obj);
-            const result = await Bid.create(create_obj);
+            const result = await this.bidRepo.save(create_obj);
 
             if (result) {
 
@@ -44,11 +48,9 @@ class BidController {
 
     async _fetch(bid_obj) {
         console.log(bid_obj);
-        let bids = await (Bid.findAll({
-            where: {
-                product_id: bid_obj["product_id"]
-            }
-        }));
+        let bids = await this.bidRepo.findAll({
+            product_id: bid_obj["product_id"]
+        });
 
         return bids;
     }
@@ -66,13 +68,11 @@ class BidController {
         // console.log(bid_obj);
         try {
             let whereObj = {
-                    id: bid_id,
-                    product_id: product_id
-                }
-                //console.log(whereObj);
-            const rowsDeleted = await Bid.destroy({
-                where: whereObj
-            });
+                id: bid_id,
+                product_id: product_id
+            };
+            //console.log(whereObj);
+            const rowsDeleted = await this.bidRepo.remove(whereObj);
             //console.log(rowsDeleted);
             if (rowsDeleted > 0) {
                 let bids = await this._fetch(whereObj);
@@ -103,21 +103,25 @@ class BidController {
                     [Op.ne]: bid_id
                 },
                 product_id: product_id
-            }
+            };
 
-            const rowsDeleted = await Bid.destroy({
-                where: whereObj
-            });
+            const rowsDeleted = await this.bidRepo.remove(whereObj);
             //console.log(rowsDeleted);
             if (rowsDeleted > 0) {
-                let update_result = await Bid.update({
-                    is_finalized: true
-                }, {
-                    where: {
-                        id: bid_id,
-                        product_id: product_id
-                    }
-                });
+                // let update_result = await Bid.update({
+                //     is_finalized: true
+                // }, {
+                //     where: {
+                //         id: bid_id,
+                //         product_id: product_id
+                //     }
+                // });
+                let update_query = { is_finalized: true };
+                let wheryQuery = {
+                    id: bid_id,
+                    product_id: product_id
+                };
+                let update_result = await this.bidRepo.update(update_query, wheryQuery);
                 if (update_result.length > 0) {
                     let bids = await this._fetch(whereObj);
                     response["bids"] = bids;

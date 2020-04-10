@@ -1,17 +1,21 @@
 const Product = require("../models/product");
 const Bid = require("../models/Bid");
 const _ = require("lodash");
+const ProductRepository = require("../repositories/ProductRepository");
 const { ProductValidation } = require("../utils/product_validation");
 const { getErrorObj } = require("../utils/custom_err_manip");
 
 class ProductController {
 
+    constructor() {
+        this.productRepo = new ProductRepository();
+    }
     async save(req, res, next) {
         let response = {
             code: 200
         };
         let product_obj = _.pick(req.body, ["name"]);
-        console.log(product_obj);
+        //console.log(product_obj);
         try {
             let { error } = ProductValidation.validateProduct(product_obj);
             //console.log(error)
@@ -22,14 +26,14 @@ class ProductController {
                     errors: err_obj
                 };
             }
-            let result = await Product.create({
-                name: product_obj["name"]
+            let result = await this.productRepo.save({
+                name: product_obj.name
             });
             if (result) {
                 //console.log(result);
                 //console.log(result.toJSON());
                 let products = await this._fetch();
-                console.log(products);
+                //console.log(products);
                 response["products"] = products;
             } else {
                 response["code"] = 500;
@@ -45,9 +49,7 @@ class ProductController {
 
     async _fetch() {
 
-        let product_bids = await Product.findAll({
-            include: [{ model: Bid }]
-        });
+        let product_bids = this.productRepo.findAll();
         // console.log(productP.toString());
         // let products = productP.map(product => {
         //     // console.log(product);
@@ -55,7 +57,7 @@ class ProductController {
         //     return product;
         // });
         //console.log(products);
-        return product_bids
+        return product_bids;
     }
 
     async retrieve(req, res, next) {
@@ -64,7 +66,7 @@ class ProductController {
         };
 
         try {
-            response["products"] = await this._fetch();
+            response.products = await this._fetch();
             return response;
         } catch (ex) {
             next(ex);
